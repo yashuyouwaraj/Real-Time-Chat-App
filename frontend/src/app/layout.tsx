@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// TypeScript: CSS imports need type declarations; add "src/global.d.ts" with
+// 'declare module "*.css";' to avoid using @ts-ignore in the future.
+// @ts-ignore
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,12 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className="dark">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <div className="flex min-h-screen flex-col bg-background text-foreground">
+            {/* navbar */}
+            <main className="flex flex-1 flex-col">
+              <div className="mx-auto flex w-full flex-1 flex-col px-4 py-8 md:py-10">
+                {children}
+              </div>
+            </main>
+          </div>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
