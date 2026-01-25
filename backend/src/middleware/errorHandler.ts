@@ -13,7 +13,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     message = err.message;
     details = err.details;
   } else if (err instanceof ZodError) {
-    status: 400;
+    status = 400;
     message = "Invalid request data";
     details = err.issues.map((issue) => ({
       path: issue.path,
