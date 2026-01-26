@@ -5,12 +5,14 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev":"tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/db/migrate.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@clerk/express": "^1.7.65",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^4.22.1",
