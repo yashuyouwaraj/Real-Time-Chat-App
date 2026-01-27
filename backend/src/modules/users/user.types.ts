@@ -46,7 +46,7 @@ export function toUserProfileResponse(profile:UserProfile):UserProfileResponse{
         email:clerkEmail ?? null,
         displayName: user.displayName ?? clerkFullName ?? null,
         handle: user.handle ?? null,
-        avatarUrl : user.avatarUrl ?? null
+        avatarUrl : user.avatarUrl ?? null,
         bio: user.bio ?? null
     }
 }

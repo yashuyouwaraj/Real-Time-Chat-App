@@ -21,6 +21,11 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     }));
   }
   logger.error(`${req.method} ${req.originalUrl} -----> ${status}-${message}`);
+  if (err instanceof Error) {
+    logger.error(`Stack: ${err.stack}`);
+  } else {
+    logger.error(`Error details: ${JSON.stringify(err)}`);
+  }
 
   res.status(status).json({
     error: {

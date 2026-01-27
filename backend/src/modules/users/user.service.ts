@@ -1,10 +1,15 @@
 import { email } from "zod";
 import { clerkClient } from "../../config/clerk.js";
 import { UserProfile } from "./user.types.js";
-import { upsertUserFromClerkProfile } from "./user.repository.js";
+import { repoUpdateUserProfile, upsertUserFromClerkProfile } from "./user.repository.js";
 
 async function fetchClerkProfile(clerkUserId: string) {
-  const clerkUser = await clerkClient.users.getUser(clerkUserId);
+  let clerkUser;
+  try {
+    clerkUser = await clerkClient.users.getUser(clerkUserId);
+  } catch (err) {
+    throw new Error(`Failed to fetch Clerk profile for user ${clerkUserId}: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   const getFullName =
     (clerkUser.firstName || "") +
@@ -43,4 +48,26 @@ export async function getUserFromClerk(
     clerkEmail: email,
     clerkFullName: fullName,
   };
+}
+
+export async function updateUserProfile(params:{
+  clerkUserId:string,
+  displayName?:string,
+  handle?:string,
+  bio?:string,
+  avatarUrl?:string
+}):Promise<UserProfile> {
+  const {clerkUserId,displayName,handle,bio,avatarUrl} = params
+
+  const  updatedUser = await repoUpdateUserProfile({
+    clerkUserId,displayName,handle,bio,avatarUrl
+  })
+
+  const {fullName,email} = await fetchClerkProfile(clerkUserId)
+
+  return {
+    user:updatedUser,
+    clerkEmail:email,
+    clerkFullName:fullName
+  }
 }

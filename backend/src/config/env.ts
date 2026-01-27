@@ -8,7 +8,7 @@ const EnvSchema = z.object({
   DB_NAME: z.string().default("realtime_chat_and_threads_app"),
   DB_USER: z.string().default("postgres"),
   DB_PASSWORD: z.string().default("postgres"),
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
+  CLERK_PUBLISHABLE_KEY: z.string(),
   CLERK_SECRET_KEY: z.string(),
 });
 
