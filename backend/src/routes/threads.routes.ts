@@ -16,7 +16,7 @@ const CreatedThreadSchema = z.object({
 threadsRouter.get("/categories",async (_req,res,next)=>{
     try {
         const extractListOfCategories = await listCategories()
-        res.json(extractListOfCategories)
+        res.json({data: extractListOfCategories})
     } catch (err) {
         next(err)
     }
