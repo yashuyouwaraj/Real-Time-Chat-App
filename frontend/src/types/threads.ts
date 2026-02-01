@@ -2,7 +2,8 @@ export type Category = {
   id: number;
   slug: string;
   name: string;
-  description: string;
+  description: string | null;
+  sortOrder: number;
 };
 
 export type ThreadSummary = {
@@ -35,4 +36,22 @@ export type ThreadDetail = {
     handle: string | null;
   };
 
+  likeCount: number;
+  replyCount: number;
+  viewerHasLikedThisPostOrNot: boolean;
+};
+
+export type Comment = {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: {
+    displayName: string | null;
+    handle: string | null;
+  };
+};
+
+export type MeResponse = {
+  id: number;
+  handle: string | null;
 };
