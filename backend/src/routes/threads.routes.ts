@@ -5,6 +5,7 @@ import { BadRequestError, UnauthorizedError } from "../lib/errors.js";
 import {z} from "zod"
 import { getUserFromClerk } from "../modules/users/user.service.js";
 import { createReply, deleteReplyById, findReplyAuthor, getThreadDetailsWithCounts, likeThreadOnce, listRepliesForThread, removeThreadOnce } from "../modules/threads/replies.repository.js";
+import { createLikeNotification, createReplyNotification } from "../modules/notifications/notification.service.js";
 
 export const threadsRouter = Router()
 
@@ -128,6 +129,12 @@ threadsRouter.post("/threads/:threadId/replies",async(req,res,next)=>{
             body:bodyRaw
         })
 
+        // notification -> trigger here but later
+        await createReplyNotification({
+            threadId,
+            actorUserId:profile.user.id
+        })
+
         res.status(201).json({data:reply})
 
     } catch (err) {
@@ -178,6 +185,12 @@ threadsRouter.post("/threads/:threadId/like",async(req,res,next)=>{
         await likeThreadOnce({
             threadId,
             userId:profile.user.id
+        })
+
+        //  notifications -> logic but later
+        await createLikeNotification({
+            threadId,
+            actorUserId:profile.user.id
         })
 
         res.status(204).send()
