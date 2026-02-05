@@ -9,7 +9,7 @@ import { apiGet, createBrowserApiClient } from "@/lib/api-client";
 import { Notification } from "@/types/notification";
 import { useNotificationCount } from "@/hooks/use-notification-count";
 import { toast } from "sonner";
-import { Button } from "../button";
+import { Button } from "../ui/button";
 
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

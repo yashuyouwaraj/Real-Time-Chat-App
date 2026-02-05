@@ -5,12 +5,12 @@ import { Category, ThreadSummary } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Badge } from "../badge";
-import { Button } from "../button";
-import { Input } from "../input";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 function ThreadsHomePage() {
   const { getToken } = useAuth();

@@ -6,7 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
-import Navbar from "@/components/ui/layout/navbar";
+import Navbar from "@/components/layout/navbar";
 import { NotificationCountProvider } from "@/hooks/use-notification-count";
 
 const geistSans = Geist({

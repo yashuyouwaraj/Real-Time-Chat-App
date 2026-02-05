@@ -1,4 +1,4 @@
-import ThreadsHomePage from "@/components/ui/threads/threads-home";
+import ThreadsHomePage from "@/components/threads/threads-home";
 
 
 
