@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, createBrowserApiClient } from "@/lib/api-client";
+import { apiGet, apiPost, createBrowserApiClient } from "@/lib/api-client";
 import { Category, ThreadDetail } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,15 +15,15 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const NewThreadScheman = z.object({
-  title: z.string().min(3, "Title is too short"),
-  body: z.string().min(15, "Body is too short"),
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  body: z.string().min(10, "Description must be at least 10 characters"),
   categorySlug: z.string().trim().min(1, "Category is required"),
 });
 
 type NewThreadFormValues = z.infer<typeof NewThreadScheman>;
 
 function NewThreadsPage() {
-  const { getToken } = useAuth();
+  const { getToken, userId, isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
 
   const apiClient = useMemo(() => createBrowserApiClient(getToken), [getToken]);
@@ -31,6 +31,17 @@ function NewThreadsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Debug: Log auth status
+  useEffect(() => {
+    console.log("Auth status:", { isLoaded, isSignedIn, userId });
+    if (isLoaded && !isSignedIn) {
+      toast.error("Authentication required", {
+        description: "You must be signed in to create a thread.",
+      });
+      router.push("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, userId, router]);
 
   const form = useForm<NewThreadFormValues>({
     resolver: zodResolver(NewThreadScheman),
@@ -72,22 +83,31 @@ function NewThreadsPage() {
   async function onThreadSubmit(values: NewThreadFormValues) {
     try {
       setIsSubmitting(true);
-      //try to add a new method in apiclient file -> apiPost
-      const response = await apiClient.post("/api/threads/threads", {
-        title: values.title,
-        body: values.body,
-        categorySlug: values.categorySlug,
-      });
+      console.log("Submitting thread with values:", values);
+      const token = await getToken();
+      console.log("Token exists:", !!token);
+      
+      const created = await apiPost<NewThreadFormValues, ThreadDetail>(
+        apiClient,
+        "/api/threads/threads",
+        {
+          title: values.title,
+          body: values.body,
+          categorySlug: values.categorySlug,
+        }
+      );
 
-      const created = response?.data?.data as ThreadDetail;
-
+      console.log("Thread created:", created);
       toast.success("Thread created successfully", {
         description: "Your thread has been created.",
       });
-      //   router.push("/")
       router.push(`/threads/${created?.id}`);
     } catch (error) {
-      console.log("Failed to create new thread", error);
+      console.error("Failed to create new thread", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create thread. Please try again.";
+      toast.error("Failed to create thread", {
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -125,6 +145,9 @@ function NewThreadsPage() {
                 disabled={isLoading || isSubmitting}
                 className="border-border mt-3 bg-background/70 text-sm"
               />
+              {form.formState.errors.title && (
+                <p className="text-xs text-red-500">{form.formState.errors.title.message}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -158,6 +181,9 @@ function NewThreadsPage() {
                 Description
               </label>
               <Textarea id="body" rows={8} placeholder="Thread description..." disabled={isLoading || isSubmitting} className="border-border mt-3 bg-background/70 text-sm" {...form.register("body")}/>
+              {form.formState.errors.body && (
+                <p className="text-xs text-red-500">{form.formState.errors.body.message}</p>
+              )}
             </div>
             <CardFooter className="flex justify-end border-t border-border px-x pt-5">
                 <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground hover:bg-primary/90">

@@ -19,26 +19,32 @@ import {
 } from "react";
 import { type Socket } from "socket.io-client";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Send, Wifi, WifiOff } from "lucide-react";
+import { Send, Wifi, WifiOff, Phone } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 import ImageUploadButton from "./image-upload-button";
+import { useBrowserNotification } from "@/hooks/use-browser-notification";
 
 type DirectChatPanelProps = {
   otherUserId: number;
   otherUser: ChatUser | null;
   socket: Socket | null;
   connected: boolean;
+  onVideoCallClick?: () => void;
+  currentUserName?: string | null;
 };
 
 function DirectChatPanel(props: DirectChatPanelProps) {
-  const { otherUser, otherUserId, socket, connected } = props;
+  const { otherUser, otherUserId, socket, connected, onVideoCallClick, currentUserName } = props;
   const { getToken } = useAuth();
+  const { sendNotification, requestPermission, permission } = useBrowserNotification();
 
   const apiClient = useMemo(() => createBrowserApiClient(getToken), [getToken]);
 
   const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [displayMessages, setDisplayMessages] = useState<DirectMessage[]>([]);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -46,11 +52,24 @@ function DirectChatPanel(props: DirectChatPanelProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const PAGE_SIZE = 20;
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Request notification permission on mount
   useEffect(() => {
-    messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (permission === 'default') {
+      requestPermission().catch(err => {
+        console.log('Notification permission error:', err);
+      });
+    }
+  }, [permission, requestPermission]);
+
+  useEffect(() => {
+    // Intentionally no global autoscroll on `messages` changes.
+    // We handle scrolling explicitly when appending to `displayMessages`
+    // so the user won't be forced to scroll to bottom when viewing older messages.
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,7 +89,17 @@ function DirectChatPanel(props: DirectChatPanelProps) {
         );
 
         if (!isMounted) return;
-        setMessages(mapDirectMessagesResponse(res));
+        const all = mapDirectMessagesResponse(res);
+        setMessages(all);
+        // show only last PAGE_SIZE messages initially
+        const start = Math.max(0, all.length - PAGE_SIZE);
+        setDisplayMessages(all.slice(start));
+        // scroll to bottom after initial load
+        requestAnimationFrame(() => {
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+          }
+        });
       } catch (err) {
         console.log(err);
       } finally {
@@ -100,7 +129,37 @@ function DirectChatPanel(props: DirectChatPanelProps) {
         return;
       }
 
-      setMessages((prev) => [...prev, mapped]);
+      setMessages((prev) => {
+        const next = [...prev, mapped];
+        return next;
+      });
+
+      // Append to displayMessages if user is near bottom
+      const el = containerRef.current;
+      const isNearBottom = !el || el.scrollHeight - (el.scrollTop + el.clientHeight) < 120;
+
+      setDisplayMessages((prev) => {
+        if (isNearBottom) {
+          // append and schedule scroll to bottom
+          const next = [...prev, mapped];
+          requestAnimationFrame(() => {
+            if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+          });
+          return next;
+        }
+        // user is viewing older messages: don't disturb scroll — increment unread counter
+        setNewMessagesCount((c) => c + 1);
+        return prev;
+      });
+
+      // Send notification if user is receiving a message from the other user
+      if (mapped.senderUserId === otherUserId) {
+        sendNotification(`New message from ${otherUser?.displayName || otherUser?.handle || 'User'}`, {
+          body: mapped.body || '📸 Image message',
+          tag: `chat-${otherUserId}`,
+          icon: otherUser?.avatarUrl || undefined,
+        });
+      }
     }
 
     function handleTyping(payload: {
@@ -162,6 +221,64 @@ function DirectChatPanel(props: DirectChatPanelProps) {
     }
   }
 
+  function handleScroll() {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // If user scrolled to top, try to prepend older messages
+    if (el.scrollTop <= 12) {
+      if (displayMessages.length === 0) return;
+
+      const firstId = displayMessages[0].id;
+      const firstIndex = messages.findIndex((m) => m.id === firstId);
+      if (firstIndex <= 0) return; // no older messages
+
+      const take = Math.min(PAGE_SIZE, firstIndex);
+      const start = Math.max(0, firstIndex - take);
+      const older = messages.slice(start, firstIndex);
+
+      const prevScrollHeight = el.scrollHeight;
+      const prevScrollTop = el.scrollTop;
+
+      setDisplayMessages((prev) => [...older, ...prev]);
+
+      // restore scroll position to keep view stable
+      requestAnimationFrame(() => {
+        const newScrollHeight = el.scrollHeight;
+        el.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+      });
+    }
+
+    // If user is near bottom, clear unread counter and append any pending messages
+    const isNearBottom = el.scrollHeight - (el.scrollTop + el.clientHeight) < 120;
+    if (isNearBottom && newMessagesCount > 0) {
+      // append pending messages from `messages` into displayMessages
+      const lastDisplayedId = displayMessages.length > 0 ? displayMessages[displayMessages.length - 1].id : null;
+      const lastIndex = lastDisplayedId ? messages.findIndex((m) => m.id === lastDisplayedId) : -1;
+      const pending = lastIndex >= 0 ? messages.slice(lastIndex + 1) : messages;
+      if (pending.length > 0) {
+        setDisplayMessages((prev) => [...prev, ...pending]);
+      }
+      setNewMessagesCount(0);
+      requestAnimationFrame(() => {
+        if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }
+
+  function showPendingMessages() {
+    const lastDisplayedId = displayMessages.length > 0 ? displayMessages[displayMessages.length - 1].id : null;
+    const lastIndex = lastDisplayedId ? messages.findIndex((m) => m.id === lastDisplayedId) : -1;
+    const pending = lastIndex >= 0 ? messages.slice(lastIndex + 1) : messages;
+    if (pending.length === 0) return;
+
+    setDisplayMessages((prev) => [...prev, ...pending]);
+    setNewMessagesCount(0);
+    requestAnimationFrame(() => {
+      if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    });
+  }
+
   async function handleSend() {
     if (!socket || !connected) {
       toast("Not connected", {
@@ -198,41 +315,46 @@ function DirectChatPanel(props: DirectChatPanelProps) {
       : otherUser?.displayName ?? "Conversation";
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-border/70 bg-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border pb-3">
+    <Card className="relative flex h-full flex-col overflow-hidden border-border/50 glass-card-premium">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b pb-4" style={{ borderColor: 'var(--color-border)', background: 'transparent' }}>
         <div>
-          <CardTitle className="text-base text-foreground">{title}</CardTitle>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Direct message conversation
-          </p>
+          <CardTitle className="text-base font-bold" style={{ color: 'var(--color-card-foreground)' }}>{title}</CardTitle>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Direct message</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-medium ${
-              connected
-                ? "bg-primary/10 text-primary"
-                : "bg-accent text-accent-foreground"
-            }`}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onVideoCallClick}
+            disabled={!connected}
+            className="flex items-center justify-center h-9 w-9 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110 active:scale-95 animate-call-ring"
+            title="Start video call"
+            style={{ background: 'var(--color-primary)', color: 'var(--color-primary-foreground)', boxShadow: '0 8px 24px rgba(14,165,233,0.12)' }}
           >
-            {connected ? (
-              <>
-                <Wifi className="w-3 h-3" />
-                Online
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3 h-3" />
-                Offline
-              </>
-            )}
-          </span>
+            <Phone className="w-4 h-4" />
+          </button>
+          <div
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all duration-300`}
+            style={connected ? { background: 'var(--accent)', color: 'var(--accent-foreground)', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 6px 18px rgba(0,0,0,0.06)' } : { background: 'transparent', color: 'var(--color-muted-foreground)', border: '1px solid rgba(0,0,0,0.04)' }}
+          >
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${connected ? "animate-pulse" : ""}`} style={{ background: connected ? 'var(--chart-1)' : 'var(--muted-foreground)' }} />
+            {connected ? "Online" : "Offline"}
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-3 overflow-y-auto bg-background/60 p-4">
+      <CardContent
+        ref={(el) => (containerRef.current = el)}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4"
+        style={{ background: "transparent", display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      >
+        <div className="flex flex-col gap-4 w-full">
         {isLoading && (
-          <div className="flex items-center justify-center py-8">
-            <p className="text-xs text-muted-foreground">Loading messages...</p>
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <div className="h-12 w-3/4 rounded-lg animate-shimmer bg-[var(--color-popover)]" />
+              </div>
+            ))}
           </div>
         )}
         {!isLoading && messages.length === 0 && (
@@ -244,7 +366,7 @@ function DirectChatPanel(props: DirectChatPanelProps) {
         )}
 
         {!isLoading &&
-          messages.map((msg) => {
+          displayMessages.map((msg) => {
             console.log(msg.senderUserId, otherUserId, "otherUserId");
 
             const isOther = msg.senderUserId === otherUserId;
@@ -259,42 +381,37 @@ function DirectChatPanel(props: DirectChatPanelProps) {
               <div
                 className={`flex gap-2 text-xs ${
                   isOther ? "justify-start" : "justify-end"
-                }`}
+                } animate-slide-in`}
                 key={msg.id}
               >
                 <div className={`max-w-xs ${isOther ? "" : "order-2"}`}>
                   <div
-                    className={`mb-1 text-[12px] font-medium ${
+                    className={`mb-1.5 text-[11px] font-medium ${
                       isOther
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground text-right"
+                        ? "text-slate-400"
+                        : "text-slate-400 text-right"
                     }`}
                   >
-                    {label} - {time}
+                    {label} • {time}
                   </div>
 
                   {msg?.body && (
                     <div
-                      className={`inline-block rounded-lg px-3 py-2 transition-colors duration-150
-                      ${
-                        isOther
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-primary/80 text-primary-foreground"
-                      }
-                      `}
+                      className={`inline-block rounded-lg px-3.5 py-2.5 transition-all duration-150 shadow-sm hover:shadow-lg hover:scale-105 glass-bubble`}
+                      style={isOther ? { background: 'var(--bubble-incoming)', color: 'var(--bubble-incoming-foreground)', border: '1px solid var(--bubble-border)', backdropFilter: 'blur(8px) saturate(110%)', WebkitBackdropFilter: 'blur(8px) saturate(110%)' } : { background: 'var(--bubble-outgoing)', color: 'var(--bubble-outgoing-foreground)', border: '1px solid var(--bubble-border)', backdropFilter: 'blur(8px) saturate(110%)', WebkitBackdropFilter: 'blur(8px) saturate(110%)', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.12)' }}
                     >
-                      <p className="wrap-break-word text-[16px] leading-relaxed">
+                      <p className="wrap-break-word text-[15px] leading-relaxed font-medium" style={{ margin: 0 }}>
                         {msg.body}
                       </p>
                     </div>
                   )}
 
                   {msg?.imageUrl && (
-                    <div className="mt-2 overflow-hidden rounded-lg border border-border">
+                    <div className="mt-2 overflow-hidden rounded-lg border border-slate-600/30 shadow-md glass-bubble">
                       <img
                         src={msg.imageUrl}
                         alt="attachment"
-                        className="max-h-52 max-w-xs rounded-lg object-cover"
+                        className="max-h-52 max-w-xs rounded-lg object-cover hover:brightness-110 transition-all duration-200"
                       />
                     </div>
                   )}
@@ -305,57 +422,69 @@ function DirectChatPanel(props: DirectChatPanelProps) {
 
         {typingLabel && (
           <div className="flex justify-start gap-2 text-xs">
-            <div className="italic text-muted-foreground">{typingLabel}</div>
+            <div className="italic text-slate-400 font-medium">{typingLabel}</div>
           </div>
         )}
+        </div>
         <div ref={messagesEndRef} />
       </CardContent>
 
-      <div className="space-y-3 border-t border-border bg-car  p-5">
+      {/* new messages indicator (visible when user scrolled up) */}
+      {newMessagesCount > 0 && (
+        <div className="absolute left-1/2 z-40 -translate-x-1/2 mt-2">
+          <button
+            onClick={showPendingMessages}
+            className="rounded-full bg-[#0ea5e9] px-4 py-2 text-sm font-medium text-white shadow-lg"
+          >
+            {newMessagesCount} new message{newMessagesCount > 1 ? "s" : ""}
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-3 border-t p-5" style={{ borderColor: 'var(--color-border)', background: 'transparent' }}>
         {imageUrl && (
-          <div className="rounded-lg border border-border bg-background/70 p-2">
-            <p className="text-[12px] text-muted-foreground mb-2">
-              Image ready to send:
+          <div className="rounded-lg border border-slate-600/30 bg-slate-900/40 p-3 shadow-sm">
+            <p className="text-[12px] text-slate-400 mb-2 font-medium">
+              📸 Image ready to send
             </p>
             <img
               src={imageUrl}
               alt="pending"
-              className="max-h-32 rounded-lg border border-border object-contain"
+              className="max-h-32 rounded-lg border border-slate-600/30 object-contain"
             />
           </div>
         )}
 
-        <div className="space-y-2">
+          <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             {/* image upload component  */}
             <ImageUploadButton onImageUpload={(url) => setImageUrl(url)} />
-            <span className="text-[11px] text-muted-foreground">
-              Cloudinary Image Upload
-            </span>
+            <span className="text-[11px] text-slate-400">Cloudinary</span>
           </div>
 
-          <div className="flex gap-2">
+            <div className="flex gap-2">
             <Textarea
               rows={2}
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              disabled={!connected || sending}
-              className="min-h-14 resize-none border-border bg-background text-sm"
+                disabled={!connected || sending}
+                className="min-h-14 resize-none text-sm placeholder:text-[var(--muted-foreground)] rounded-lg focus:outline-none transition-all duration-200"
+                style={{ background: 'var(--color-popover)', color: 'var(--color-popover-foreground)', borderColor: 'var(--color-border)' }}
             />
-            <Button
-              size="icon"
+            <button
               onClick={handleSend}
               disabled={sending || !connected || (!input.trim() && !imageUrl)}
+                className="flex items-center justify-center h-10 w-10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 active:scale-95"
+                style={{ background: 'var(--color-primary)', color: 'var(--color-primary-foreground)', boxShadow: '0 8px 24px rgba(14,165,233,0.12)' }}
             >
               <Send className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         </div>
       </div>
-    </Card>
-  );
+    </Card>  );
 }
 
 export default DirectChatPanel;

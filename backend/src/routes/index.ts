@@ -4,6 +4,7 @@ import { threadsRouter } from './threads.routes.js'
 import { notificationsRouter } from './notifications.routes.js'
 import { chatRouter } from './chat.routes.js'
 import { uploadRouter } from './upload.routes.js'
+import { videoCallRouter } from './videocall.routes.js'
 
 export const apiRouter = Router()
 
@@ -16,3 +17,5 @@ apiRouter.use("/notifications",notificationsRouter)
 apiRouter.use("/chat",chatRouter)
 
 apiRouter.use("/upload",uploadRouter)
+
+apiRouter.use("/videocall",videoCallRouter)

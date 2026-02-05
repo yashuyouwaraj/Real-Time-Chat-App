@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, createBrowserApiClient } from "@/lib/api-client";
+import { apiGet, apiPost, apiDelete, createBrowserApiClient } from "@/lib/api-client";
 import { Comment, MeResponse, ThreadDetail } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
 import { ArrowLeft, MessageCircle, ThumbsUp, Trash2 } from "lucide-react";
@@ -95,12 +95,12 @@ function ThreadsDetailsPage() {
     try {
       setIsPostingComment(true);
 
-      const res = await apiClient.post(`/api/threads/threads/${id}/replies`, {
-        body: trimmedComment,
-      });
+      const created = await apiPost<{ body: string }, Comment>(
+        apiClient,
+        `/api/threads/threads/${id}/replies`,
+        { body: trimmedComment }
+      );
 
-      const created: Comment = res.data.data;
-      console.log(created);
       setComments((prev) => [...prev, created]);
       setNewComment("");
       toast.success("Comment added!!!", {
@@ -108,6 +108,7 @@ function ThreadsDetailsPage() {
       });
     } catch (e) {
       console.log(e);
+      toast.error("Failed to add comment");
     } finally {
       setIsPostingComment(false);
     }
@@ -131,7 +132,8 @@ function ThreadsDetailsPage() {
 
     try {
       setCommentBeingDeletedId(currentCommentIdToBeDeleted);
-      await apiClient.delete(
+      await apiDelete(
+        apiClient,
         `/api/threads/replies/${currentCommentIdToBeDeleted}`
       );
       setComments((prev) =>
@@ -143,6 +145,7 @@ function ThreadsDetailsPage() {
       });
     } catch (e) {
       console.log(e);
+      toast.error("Failed to delete comment");
     } finally {
       setCommentBeingDeletedId(null);
     }
@@ -163,22 +166,23 @@ function ThreadsDetailsPage() {
       setIsTogglingLike(true);
 
       if (isLiked) {
-        await apiClient.delete(`/api/threads/threads/${thread.id}/like`);
+        await apiDelete(apiClient, `/api/threads/threads/${thread.id}/like`);
         setIsLiked(false);
         setLikeCount((prev) => Math.max(0, prev - 1));
         toast.success("Like removed", {
-          description: "Yout upvote has been removed",
+          description: "Your upvote has been removed",
         });
       } else {
-        await apiClient.post(`/api/threads/threads/${thread.id}/like`);
+        await apiPost(apiClient, `/api/threads/threads/${thread.id}/like`, {});
         setIsLiked(true);
         setLikeCount((prev) => prev + 1);
         toast.success("Like added", {
-          description: "Yout upvote has been added",
+          description: "Your upvote has been added",
         });
       }
     } catch (e) {
       console.log(e);
+      toast.error("Failed to toggle like");
     } finally {
       setIsTogglingLike(false);
     }

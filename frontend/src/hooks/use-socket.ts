@@ -30,6 +30,8 @@ export function useSocket(): UseSocketResult {
       return;
     }
 
+    // Always use localhost for backend connection in local development
+    // Backend is running locally, not on the network interface
     const baseUrl = "http://localhost:5000";
 
     console.log(`[Socket], ${baseUrl}, ${userId}`);

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   createdThread,
-  getThreadById,
   listCategories,
   listThreads,
   parseThreadListFilter,
@@ -99,7 +98,8 @@ threadsRouter.get("/threads", async (req, res, next) => {
       page: req.query.page,
       pageSize: req.query.pageSize,
       category: req.query.category,
-      q: req.query.q,
+      // accept both `q` and `query` from clients (frontend uses `query`)
+      q: (req.query.q as unknown) ?? (req.query.query as unknown),
       sort: req.query.sort,
     });
 

@@ -51,48 +51,149 @@
 }
 
 .dark {
-  --background: #020617;
-  --foreground: #e5e7eb;
+  --background: #0a0e27;
+  --foreground: #e8eef5;
 
-  --card: #111322;
-  --card-foreground: #f9fafb;
+  --card: rgba(25, 35, 65, 0.6);
+  --card-foreground: #e8eef5;
 
-  --popover: #111322;
-  --popover-foreground: #f9fafb;
+  --popover: rgba(35, 50, 90, 0.65);
+  --popover-foreground: #e8eef5;
 
-  --primary: #bef264;
-  --primary-foreground: #052e16;
+  --primary: #8b5cf6;
+  --primary-foreground: #ede9fe;
 
-  --secondary: #020617;
-  --secondary-foreground: #e5e7eb;
+  --secondary: rgba(100, 85, 255, 0.5);
+  --secondary-foreground: #e8eef5;
 
-  --muted: #020617;
-  --muted-foreground: #9ca3af;
+  --muted: rgba(120, 110, 180, 0.4);
+  --muted-foreground: #a0a8b8;
 
-  --accent: #1e1635;
-  --accent-foreground: #e9d5ff;
+  --accent: rgba(236, 72, 153, 0.25);
+  --accent-foreground: #f472b6;
+
+  --destructive: #ff5555;
+  --destructive-foreground: #ffe5e5;
+
+  --border: rgba(139, 92, 246, 0.15);
+  --input: rgba(139, 92, 246, 0.12);
+  --ring: #8b5cf6;
+
+  --chart-1: #ec4899;
+  --chart-2: #8b5cf6;
+  --chart-3: #06b6d4;
+  --chart-4: #fbbf24;
+  --chart-5: #34d399;
+
+  --sidebar: rgba(20, 30, 60, 0.7);
+  --sidebar-foreground: #e8eef5;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ede9fe;
+  --sidebar-accent: rgba(25, 35, 65, 0.6);
+  --sidebar-accent-foreground: #e8eef5;
+  --sidebar-border: rgba(139, 92, 246, 0.12);
+  --sidebar-ring: #8b5cf6;
+
+  /* Message bubble colors */
+  --bubble-incoming: rgba(35, 50, 90, 0.6);
+  --bubble-incoming-foreground: #c4b5fd;
+  --bubble-outgoing: rgba(139, 92, 246, 0.22);
+  --bubble-outgoing-foreground: #ede9fe;
+  --bubble-border: rgba(139, 92, 246, 0.2);
+}
+
+/* Light - Glass (premium) theme */
+.light-glass {
+  --background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(240,247,255,0.6));
+  --foreground: #022032;
+
+  --card: rgba(255,255,255,0.55);
+  --card-foreground: #022032;
+
+  --popover: rgba(255,255,255,0.6);
+  --popover-foreground: #022032;
+
+  --primary: #0ea5e9; /* bright premium cyan */
+  --primary-foreground: #052e3d;
+
+  --secondary: rgba(255,255,255,0.6);
+  --secondary-foreground: #022032;
+
+  --muted: rgba(250,250,255,0.7);
+  --muted-foreground: #6b7280;
+
+  --accent: rgba(224, 242, 255, 0.6);
+  --accent-foreground: #04263a;
 
   --destructive: #ef4444;
-  --destructive-foreground: #fef2f2;
+  --destructive-foreground: #fff5f5;
 
-  --border: rgba(139, 92, 246, 0.35);
-  --input: rgba(139, 92, 246, 0.3);
-  --ring: #a855f7;
+  --border: rgba(10, 35, 50, 0.08);
+  --input: rgba(10, 35, 50, 0.06);
+  --ring: #7dd3fc;
 
-  --chart-1: #a855f7;
-  --chart-2: #22c55e;
-  --chart-3: #38bdf8;
-  --chart-4: #f97316;
-  --chart-5: #facc15;
+  --chart-1: #06b6d4;
+  --chart-2: #60a5fa;
+  --chart-3: #7c3aed;
+  --chart-4: #fb923c;
+  --chart-5: #f59e0b;
 
-  --sidebar: #020617;
-  --sidebar-foreground: #e5e7eb;
-  --sidebar-primary: #bef264;
-  --sidebar-primary-foreground: #052e16;
-  --sidebar-accent: #111322;
-  --sidebar-accent-foreground: #e9d5ff;
-  --sidebar-border: rgba(139, 92, 246, 0.35);
-  --sidebar-ring: #a855f7;
+  --sidebar: rgba(255,255,255,0.4);
+  --sidebar-foreground: #022032;
+  --sidebar-primary: #0ea5e9;
+  --sidebar-primary-foreground: #052e3d;
+  --sidebar-accent: rgba(255,255,255,0.35);
+  --sidebar-accent-foreground: #022032;
+  --sidebar-border: rgba(10,35,50,0.06);
+  --sidebar-ring: #7dd3fc;
+
+  /* Message bubble colors for light (glass) theme */
+  --bubble-incoming: rgba(255,255,255,0.75);
+  --bubble-incoming-foreground: #022032;
+  --bubble-outgoing: rgba(14,165,233,0.12);
+  --bubble-outgoing-foreground: #052e3d;
+  --bubble-border: rgba(10,35,50,0.06);
+}
+
+/* Glass card utility */
+.glass-card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px) saturate(130%) brightness(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(130%) brightness(1.05);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Premium glass-card with enhanced glow */
+.glass-card-premium {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(15px) saturate(140%) brightness(1.08);
+  -webkit-backdrop-filter: blur(15px) saturate(140%) brightness(1.08);
+  box-shadow: 
+    0 4px 20px rgba(14, 165, 233, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Glass message bubble */
+.glass-bubble {
+  background: var(--bubble-default, rgba(40, 40, 48, 0.5));
+  color: var(--bubble-foreground, var(--card-foreground));
+  border: 1px solid var(--bubble-border, rgba(120, 120, 140, 0.12));
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  box-shadow: 
+    0 1px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Smooth theme transitions */
+html, body, .glass-card, .card {
+  transition: background-color 240ms ease, color 240ms ease, box-shadow 240ms ease;
 }
 
 @theme inline {
@@ -155,4 +256,151 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* Premium Micro-interactions */
+
+@keyframes slideInMessage {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes cardLevitate {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes callRingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7), 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0), 0 0 0 24px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0), 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+/* Utility classes for animations */
+
+.animate-slide-in {
+  animation: slideInMessage 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-card-levitate {
+  animation: cardLevitate 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.1) 0%,
+    rgba(148, 163, 184, 0.3) 50%,
+    rgba(148, 163, 184, 0.1) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-call-ring {
+  animation: callRingPulse 2s infinite;
+}
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Default: hidden. Only show ripple on active press to avoid persistent dot */
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple:active::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  animation: ripple 0.6s ease-out;
+}
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple 0.6s ease-out;
 }

@@ -11,13 +11,20 @@ export function createApp(){
 
     app.use(helmet())
     app.use(cors({
-        origin:["http://localhost:3000"],
+        origin: process.env.NODE_ENV === 'production' 
+            ? ["http://localhost:3000"]
+            : true, // Allow all origins in development
         credentials:true
     }))
 
     app.use(clerkMiddleware())
 
     app.use(express.json())
+
+    // Health check endpoint for Docker healthcheck
+    app.get('/health', (req, res) => {
+        res.json({ status: 'ok' });
+    });
 
     app.use("/api",apiRouter)
 

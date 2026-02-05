@@ -4,7 +4,7 @@ import { apiGet, createBrowserApiClient } from "@/lib/api-client";
 import { Category, ThreadSummary } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -27,74 +27,85 @@ function ThreadsHomePage() {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch categories once on mount
   useEffect(() => {
     let isMounted = true;
 
-    async function load() {
+    async function loadCategories() {
       try {
-        setIsLoading(true);
-
-        const [extractCategories, extractThreads] = await Promise.all([
-          apiGet<Category[]>(apiClient, "/api/threads/categories"),
-          apiGet<ThreadSummary[]>(apiClient, "/api/threads/threads", {
-            params: {
-              category:
-                activeCategory && activeCategory !== "all"
-                  ? activeCategory
-                  : undefined,
-              query: search || undefined,
-            },
-          }),
-        ]);
+        const extractCategories = await apiGet<Category[]>(
+          apiClient,
+          "/api/threads/categories",
+        );
 
         if (!isMounted) return;
         setCategories(extractCategories);
-        setThreads(extractThreads);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setIsLoading(false);
+      } catch (err) {
+        console.log("Failed to load categories", err);
       }
     }
-    load();
+
+    loadCategories();
+
+    return () => {
+      isMounted = false;
+    };
   }, [apiClient]);
 
-  async function applyFilters(
-    currentCategoryVal: string,
-    currentSearchVal: string,
-  ) {
-    const params = new URLSearchParams();
-    if (currentCategoryVal && currentCategoryVal !== "all") {
-      params.set("category", currentCategoryVal);
-    }
-    if (currentSearchVal.trim()) {
-      params.set("query", currentSearchVal.trim());
+  // Fetch threads when category or search changes (debounced)
+  useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout | null = null;
+
+    async function loadThreads() {
+      try {
+        setIsLoading(true);
+
+        const params: Record<string, unknown> = {};
+        if (activeCategory && activeCategory !== "all") {
+          params.category = activeCategory;
+        }
+        if (search && search.trim()) {
+          params.query = search.trim();
+        }
+
+        const result = await apiGet<ThreadSummary[]>(
+          apiClient,
+          "/api/threads/threads",
+          { params },
+        );
+
+        if (!isMounted) return;
+        setThreads(result);
+
+        // update URL (replace to avoid history spam)
+        const qp = new URLSearchParams();
+        if (params.category) qp.set("category", String(params.category));
+        if (params.query) qp.set("query", String(params.query));
+        const url = qp.toString() ? `?${qp.toString()}` : "/";
+        router.replace(url);
+      } catch (err) {
+        console.log("Failed to load threads", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     }
 
-    router.push(`?${params.toString()}`);
-    setIsLoading(true);
-
-    try {
-      const threadsListAfterSearchAndFilter = await apiGet<ThreadSummary[]>(
-        apiClient,
-        "/api/threads/threads",
-        {
-          params: {
-            category:
-              currentCategoryVal && currentCategoryVal !== "all"
-                ? currentCategoryVal
-                : undefined,
-            query: currentSearchVal || undefined,
-          },
-        },
-      );
-      setThreads(threadsListAfterSearchAndFilter);
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setIsLoading(false);
+    // debounce when there's a search term
+    if (search && search.trim()) {
+      timer = setTimeout(() => {
+        loadThreads();
+      }, 350);
+    } else {
+      // immediate load when search is empty or category changed
+      loadThreads();
     }
-  }
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [apiClient, activeCategory, search, router]);
 
   return (
     <div className="flex w-full flex-col gap-6 lg:flex-row">
@@ -117,9 +128,8 @@ function ThreadsHomePage() {
             <button
               onClick={() => {
                 setActiveCategory("all");
-                applyFilters("all", search);
               }}
-              className="cursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-card/80 hover:text-foreground "
+              className={`cursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === "all" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
             >
               All Categories
             </button>
@@ -135,9 +145,8 @@ function ThreadsHomePage() {
                 key={cat.slug}
                 onClick={() => {
                   setActiveCategory(cat.slug);
-                  applyFilters(cat.slug, search);
                 }}
-                className="ccursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-card/80 hover:text-foreground "
+                className={`cursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === cat.slug ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
               >
                 {cat.name}
               </button>
@@ -160,17 +169,17 @@ function ThreadsHomePage() {
                     className="pl-10 bg-secondary/80 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                     placeholder="Search Threads..."
                     value={search}
-                    onChange={(e)=>setSearch(e.target.value)}
-                    onKeyDown={(e)=>{
-                      if(e.key==="Enter"){
-                        applyFilters(activeCategory,search)
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        // Trigger immediate search on Enter
+                        e.preventDefault();
                       }
                     }}
                   />
                 </div>
-                <Button onClick={()=>applyFilters(activeCategory,search)} className="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90">
-                  Search
-                </Button>
               </div>
             </div>
             <Link href="/threads/new">
@@ -183,14 +192,14 @@ function ThreadsHomePage() {
         </Card>
         <div className="space-y-4">
           {isLoading && (
-            <div className="flex items-center justify-center rounded-lg border border-border bg-card py-10">
+            <div className="flex items-center justify-center rounded-lg border border-border bg-card py-10 animate-fade-in">
               <p className="text-sm text-muted-foreground">
                 Loading Threads...
               </p>
             </div>
           )}
           {!isLoading && threads.length === 0 && (
-            <Card className="border-dashed border-border bg-card">
+            <Card className="border-dashed border-border bg-card animate-fade-in">
               <CardContent className="py-10 text-center">
                 <p className="text-sm text-muted-foreground">
                   No threads found.Create your first thread
@@ -202,7 +211,7 @@ function ThreadsHomePage() {
             threads.map((thread) => (
               <Card
                 key={thread.id}
-                className="group crusor-pointer border-border/70 bg-card transition-colors duration-150 hover:border-primary/90 hover:bg-card/90 "
+                className="group crusor-pointer border-border/70 bg-card transition-all duration-200 hover:border-primary/90 hover:bg-card/90 hover:shadow-sm animate-fade-in"
               >
                 <Link href={`threads/${thread.id}`}>
                   <CardHeader className="pb-3">

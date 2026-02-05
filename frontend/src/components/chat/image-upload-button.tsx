@@ -1,6 +1,6 @@
 "use client";
 
-import { createBrowserApiClient } from "@/lib/api-client";
+import { createBrowserApiClient, apiPost } from "@/lib/api-client";
 import { useAuth } from "@clerk/nextjs";
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { Button } from "../ui/button";
@@ -32,9 +32,17 @@ function ImageUploadButton({ onImageUpload }: ImageUploadBtnProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await apiClient.post("/api/upload/image-upload", formData);
+      const uploadedData = await apiClient.post<{ url: string; width: number; height: number }>(
+        "/api/upload/image-upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      const url: string | undefined = res.data?.url;
+      const url: string | undefined = uploadedData.data?.data?.url;
 
       if (!url) {
         throw new Error("No image url is found");
@@ -46,7 +54,8 @@ function ImageUploadButton({ onImageUpload }: ImageUploadBtnProps) {
         description: "You can now send this image as message!!!",
       });
     } catch (e) {
-      console.log(e);
+      console.error("Image upload failed:", e);
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
     }

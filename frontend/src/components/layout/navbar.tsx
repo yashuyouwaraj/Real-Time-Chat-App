@@ -10,6 +10,7 @@ import { Notification } from "@/types/notification";
 import { useNotificationCount } from "@/hooks/use-notification-count";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import ThemeToggle from "./theme-toggle";
 
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -93,7 +94,12 @@ function Navbar() {
       <Link
         key={item.href}
         href={item.href}
-        className="flex items-center rounded-full px-3 py-2 text-sm font-medium transition-colors bg-primary/20 text-primary shadow-sm"
+        className="flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95"
+        style={{
+          background: "transparent",
+          color: "var(--color-sidebar-foreground)",
+          border: "1px solid transparent",
+        }}
       >
         {item.label}
       </Link>
@@ -101,17 +107,22 @@ function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
+    <header
+      className="sticky top-0 z-40 backdrop-blur-xl shadow-lg"
+      style={{
+        background: "var(--color-sidebar)",
+        color: "var(--color-sidebar-foreground)",
+        borderBottom: "1px solid var(--color-sidebar-border)",
+        boxShadow: "0 8px 24px rgba(2,8,20,0.12)",
+      }}
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-bold text-lg text-sidebar-foreground"
-          >
-            <span className="bg-linear-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+          <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+            <span style={{ background: "linear-gradient(90deg,var(--color-primary),var(--chart-3))", WebkitBackgroundClip: "text", color: "transparent" }}>
               Ace
             </span>
-            <span className="text-foreground/90">Forum</span>
+            <span style={{ color: "var(--color-sidebar-foreground)" }}>Chat</span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {navItems.map(renderNavLinks)}
@@ -120,35 +131,44 @@ function Navbar() {
 
         <div className="flex items-center gap-2 md:gap-4">
           <SignedIn>
+            <ThemeToggle />
             <Link href="/notifications">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="relative h-9 w-9 text-muted-foreground hover:bg-card/10 hover:text-foreground"
+              <button
+                className="relative h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-200 transform hover:scale-110 active:scale-95"
+                style={{
+                  color: "var(--color-sidebar-foreground)",
+                  background: "transparent",
+                  border: "1px solid transparent",
+                }}
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 inline-flex min-w-5 min-h-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm shadow-primary/40">
+                <span style={{ position: "absolute", right: -8, top: -8, minWidth: 20, minHeight: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 9999, background: "linear-gradient(90deg,var(--destructive),#ef4444)", color: "white", fontSize: 10, fontWeight: 700, boxShadow: "0 6px 18px rgba(239,68,68,0.25)" }}>
                   {unreadCount > 0 ? unreadCount : 0}
                 </span>
-              </Button>
+              </button>
             </Link>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
           <SignedOut>
+            <ThemeToggle />
             <Link href="/sign-in">
-              <Button
-                size="sm"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/90"
+              <button
+                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95"
+                style={{
+                  background: "var(--color-primary)",
+                  color: "var(--color-primary-foreground)",
+                  boxShadow: "0 8px 24px rgba(14,165,233,0.12)",
+                }}
               >
                 Sign In
-              </Button>
+              </button>
             </Link>
           </SignedOut>
 
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent text-muted-foreground transition-colors md:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700/30 bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all md:hidden"
           >
             {mobileMenuOpen ? (
               <X className="w-4 h-4" />
@@ -159,11 +179,10 @@ function Navbar() {
         </div>
       </div>
       {mobileMenuOpen && (
-        <div className="border-t border-sidebar-border bg-sidebar/90 md:hidden">
+        <div className="border-t border-slate-700/30 bg-slate-900/90 backdrop-blur-sm md:hidden">
           <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 pb-4 pt-2">
             {navItems.map(renderNavLinks)}
-          </nav>
-        </div>
+          </nav>        </div>
       )}
     </header>
   );

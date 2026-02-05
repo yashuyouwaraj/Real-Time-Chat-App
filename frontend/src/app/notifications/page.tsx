@@ -3,12 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNotificationCount } from "@/hooks/use-notification-count";
-import { apiGet, createBrowserApiClient } from "@/lib/api-client";
+import { apiGet, apiPost, createBrowserApiClient } from "@/lib/api-client";
 import { Notification } from "@/types/notification";
 import { useAuth } from "@clerk/nextjs";
 import { Inbox, MessageCircle, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 function formatText(n: Notification) {
   const actor =
@@ -71,16 +72,17 @@ function NotificationsPage() {
   async function openNoti(n: Notification) {
     try {
       if (!n.readAt) {
-        await apiClient.post(`/api/notifications/${n.id}/read`);
+        await apiPost(apiClient, `/api/notifications/${n.id}/read`, {});
         setNotifications((prev) =>
           prev.map((noti) =>
-            noti.id === n.id ? { ...n, readAt: new Date().toISOString() } : n
+            noti.id === n.id ? { ...n, readAt: new Date().toISOString() } : noti
           )
         );
         decrementUnread();
       }
     } catch (err) {
       console.log(err);
+      toast.error("Failed to mark notification as read");
     }
 
     router.push(`/threads/${n.threadId}`);

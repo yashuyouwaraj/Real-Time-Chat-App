@@ -1,4 +1,3 @@
-import { email } from "zod";
 import { clerkClient } from "../../config/clerk.js";
 import { UserProfile } from "./user.types.js";
 import { repoUpdateUserProfile, upsertUserFromClerkProfile } from "./user.repository.js";

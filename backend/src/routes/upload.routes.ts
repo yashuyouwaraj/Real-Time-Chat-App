@@ -52,9 +52,11 @@ uploadRouter.post(
       });
 
       return res.status(200).json({
-        url: result.secure_url,
-        width: result.width,
-        height: result.height,
+        data: {
+          url: result.secure_url,
+          width: result.width,
+          height: result.height,
+        }
       });
     } catch (err) {
       next(err);
