@@ -1,7 +1,14 @@
 import { SignIn } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const user = await currentUser();
+
+  // If already signed in, redirect to home
+  if (user) redirect("/");
+
   return (
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 ">
       <div className="w-full max-w-md space-y-8">
@@ -15,8 +22,8 @@ export default function SignInPage() {
             <SignIn
               routing="path"
               path="/sign-in"
-              signInUrl="/sign-up"
-              fallbackRedirectUrl="/"
+              signUpUrl="/sign-up"
+              signInFallbackRedirectUrl="/"
             />
           </div>
           <p className="text-center text-xs text-muted-foreground">

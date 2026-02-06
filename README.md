@@ -13,6 +13,30 @@ A full-stack real-time chat application with threads, notifications, and video c
 - WhatsApp-like lazy-loaded message pagination
 - Video call signaling support
 
+## Screenshots
+
+Below are screenshots of the app (stored in the repository under the `Images/` folder):
+
+- Login page
+
+   ![Login Page](Images/LoginPage.png)
+
+- Home / Threads
+
+   ![Home Page](Images/HomePage.png)
+
+- Message room / Conversation view
+
+   ![Message Room](Images/MessageRoom.png)
+
+- Notifications panel
+
+   ![Notifications](Images/Notification.png)
+
+- Profile / Settings
+
+   ![Profile Settings](Images/ProfileSetting.png)
+
 ## Tech Stack
 
 - Backend: Node.js, Express, TypeScript
