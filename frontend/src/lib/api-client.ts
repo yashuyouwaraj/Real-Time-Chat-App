@@ -4,26 +4,34 @@ import axios, {
   type AxiosInstance,
 } from "axios";
 
+const LOCAL_API = "http://localhost:5000";
+
+/** Direct backend URL (Render). Used for Socket.io and server-side calls. */
+export function getBackendOrigin(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.API_PROXY_TARGET ||
+    LOCAL_API
+  ).replace(/\/$/, "");
+}
+
+/**
+ * Base URL for REST API calls.
+ * In the browser we use same-origin paths so Next.js rewrites proxy to Render (no CORS).
+ */
+export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return "";
+  }
+
+  return getBackendOrigin();
+}
+
 export function createBrowserApiClient(
   getToken: () => Promise<string | null>,
 ): AxiosInstance {
-  // Determine API base URL with proper fallback chain:
-  // 1. Environment variable (set at build time)
-  // 2. Runtime detection from window
-  // 3. Fallback to localhost
-  let baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-  
-  if (typeof window !== 'undefined') {
-    // At runtime, if we have the env var, use it (highest priority)
-    if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-      baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
-    } else {
-      // Otherwise, always use localhost:5000 for local development
-      // Backend is running locally, not on the network interface
-      baseURL = "http://localhost:5000";
-    }
-  }
-  
+  const baseURL = getApiBaseUrl();
+
   const client = axios.create({
     baseURL,
     withCredentials: false,

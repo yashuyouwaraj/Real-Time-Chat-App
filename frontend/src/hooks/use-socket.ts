@@ -1,5 +1,6 @@
 "use client";
 
+import { getBackendOrigin } from "@/lib/api-client";
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
@@ -30,10 +31,7 @@ export function useSocket(): UseSocketResult {
       return;
     }
 
-    // Always use localhost for backend connection in local development
-    // Backend is running locally, not on the network interface
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+    const baseUrl = getBackendOrigin();
 
     console.log(`[Socket], ${baseUrl}, ${userId}`);
 

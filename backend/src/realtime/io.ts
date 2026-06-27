@@ -8,7 +8,7 @@ import {
   endVideoCall,
 } from "../modules/videocalls/videocall.service.js";
 import { createAdapter } from "@socket.io/redis-adapter";
-import { getRedisClient, isRedisEnabled } from "../config/redis.js";
+import { getSocketCorsOrigin } from "../config/cors.js";
 
 let io: Server | null = null;
 
@@ -56,13 +56,8 @@ export async function initIo(httpServer: HttpServer) {
   if (io) return io; //safeguard -> only create once;
 
   io = new Server(httpServer, {
-    // cors: {
-    //   origin: "http://localhost:4000",
-    //   credentials: true,
-    // },
-
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:4000",
+      origin: getSocketCorsOrigin(),
       credentials: true,
     },
   });

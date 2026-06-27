@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   REDIS_PORT: z.string().default("6379"),
   REDIS_PASSWORD: z.string().optional(),
   ENABLE_REDIS_ADAPTER: z.string().default("false"),
+  FRONTEND_URL: z.string().optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
