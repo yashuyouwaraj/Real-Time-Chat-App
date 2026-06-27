@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { assertDatabaseConnection } from "./db/db.js";
+import { runMigrations } from "./db/migrate.js";
 import { logger } from "./lib/logger.js";
 import http from "node:http"
 import { initIo } from "./realtime/io.js";
@@ -9,7 +10,8 @@ import { initRedis, closeRedis } from "./config/redis.js";
 async function bootstrap() {
     try {
         await assertDatabaseConnection()
-        
+        await runMigrations()
+
         // Initialize Redis adapter if enabled
         await initRedis()
         

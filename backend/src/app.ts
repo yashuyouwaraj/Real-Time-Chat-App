@@ -27,9 +27,12 @@ export function createApp(){
 
     app.use(express.json())
 
-    // Health check endpoint for Docker healthcheck
-    app.get('/health', (req, res) => {
-        res.json({ status: 'ok' });
+    app.get("/", (_req, res) => {
+        res.json({ status: "ok", service: "realtime-chat-api" });
+    });
+
+    app.get("/health", (_req, res) => {
+        res.json({ status: "ok" });
     });
 
     app.use("/api",apiRouter)
