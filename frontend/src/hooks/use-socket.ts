@@ -32,7 +32,8 @@ export function useSocket(): UseSocketResult {
 
     // Always use localhost for backend connection in local development
     // Backend is running locally, not on the network interface
-    const baseUrl = "http://localhost:5000";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
     console.log(`[Socket], ${baseUrl}, ${userId}`);
 

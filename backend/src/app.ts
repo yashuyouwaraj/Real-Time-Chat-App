@@ -10,12 +10,18 @@ export function createApp(){
     const app = express()
 
     app.use(helmet())
+    // app.use(cors({
+    //     origin: process.env.NODE_ENV === 'production' 
+    //         ? ["http://localhost:3000"]
+    //         : true, // Allow all origins in development
+    //     credentials:true
+    // }))
     app.use(cors({
-        origin: process.env.NODE_ENV === 'production' 
-            ? ["http://localhost:3000"]
-            : true, // Allow all origins in development
-        credentials:true
-    }))
+    origin: process.env.NODE_ENV === 'production'
+        ? [process.env.FRONTEND_URL || "http://localhost:3000"]
+        : true,
+    credentials: true
+}))
 
     app.use(clerkMiddleware())
 

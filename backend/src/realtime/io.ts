@@ -56,8 +56,13 @@ export async function initIo(httpServer: HttpServer) {
   if (io) return io; //safeguard -> only create once;
 
   io = new Server(httpServer, {
+    // cors: {
+    //   origin: "http://localhost:4000",
+    //   credentials: true,
+    // },
+
     cors: {
-      origin: "http://localhost:4000",
+      origin: process.env.FRONTEND_URL || "http://localhost:4000",
       credentials: true,
     },
   });
@@ -207,9 +212,7 @@ export async function initIo(httpServer: HttpServer) {
             return;
           }
 
-          console.log(
-            `[video:call:initiate] ${callerId} -> ${recipientId}`
-          );
+          console.log(`[video:call:initiate] ${callerId} -> ${recipientId}`);
 
           // Create video call record
           const videoCall = await createVideoCall({
