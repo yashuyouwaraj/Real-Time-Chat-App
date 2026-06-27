@@ -3,7 +3,7 @@
 import { apiGet, createBrowserApiClient } from "@/lib/api-client";
 import { Category, ThreadSummary } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Link from "next/link";
@@ -15,6 +15,7 @@ import { Input } from "../ui/input";
 function ThreadsHomePage() {
   const { getToken } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const apiClient = useMemo(() => createBrowserApiClient(getToken), [getToken]);
@@ -25,7 +26,9 @@ function ThreadsHomePage() {
     searchParams.get("category") ?? "all",
   );
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingThreads, setIsLoadingThreads] = useState(false);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
   // Fetch categories once on mount
   useEffect(() => {
@@ -33,6 +36,9 @@ function ThreadsHomePage() {
 
     async function loadCategories() {
       try {
+        setIsLoadingCategories(true);
+        setCategoriesError(null);
+
         const extractCategories = await apiGet<Category[]>(
           apiClient,
           "/api/threads/categories",
@@ -41,7 +47,11 @@ function ThreadsHomePage() {
         if (!isMounted) return;
         setCategories(extractCategories);
       } catch (err) {
+        if (!isMounted) return;
         console.log("Failed to load categories", err);
+        setCategoriesError("Could not load categories. Check your API connection.");
+      } finally {
+        if (isMounted) setIsLoadingCategories(false);
       }
     }
 
@@ -59,7 +69,7 @@ function ThreadsHomePage() {
 
     async function loadThreads() {
       try {
-        setIsLoading(true);
+        setIsLoadingThreads(true);
 
         const params: Record<string, unknown> = {};
         if (activeCategory && activeCategory !== "all") {
@@ -82,12 +92,14 @@ function ThreadsHomePage() {
         const qp = new URLSearchParams();
         if (params.category) qp.set("category", String(params.category));
         if (params.query) qp.set("query", String(params.query));
-        const url = qp.toString() ? `?${qp.toString()}` : "/";
-        router.replace(url);
+        const nextUrl = qp.toString()
+          ? `${pathname}?${qp.toString()}`
+          : pathname;
+        router.replace(nextUrl);
       } catch (err) {
         console.log("Failed to load threads", err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) setIsLoadingThreads(false);
       }
     }
 
@@ -105,7 +117,7 @@ function ThreadsHomePage() {
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [apiClient, activeCategory, search, router]);
+  }, [apiClient, activeCategory, search, router, pathname]);
 
   return (
     <div className="flex w-full flex-col gap-6 lg:flex-row">
@@ -126,27 +138,35 @@ function ThreadsHomePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <button
+              type="button"
               onClick={() => {
                 setActiveCategory("all");
               }}
-              className={`cursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === "all" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
+              className={`cursor-pointer flex w-full items-center rounded-lg px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === "all" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
             >
               All Categories
             </button>
-            {isLoading && (
-              <div className="flex items-center justify-center rounded-lg border border-border bg-card py-10">
+            {isLoadingCategories && (
+              <div className="flex items-center justify-center rounded-lg border border-border bg-card py-6">
                 <p className="text-sm text-muted-foreground">
-                  Loading Categories
+                  Loading categories...
                 </p>
               </div>
             )}
-            {categories.map((cat) => (
+            {categoriesError && (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {categoriesError}
+              </p>
+            )}
+            {!isLoadingCategories &&
+              categories.map((cat) => (
               <button
+                type="button"
                 key={cat.slug}
                 onClick={() => {
                   setActiveCategory(cat.slug);
                 }}
-                className={`cursor-pointer flex w-full items-center px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === cat.slug ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
+                className={`cursor-pointer flex w-full items-center rounded-lg px-3 py-3 text-sm font-medium transition-all duration-200 ${activeCategory === cat.slug ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-card/80 hover:text-foreground"}`}
               >
                 {cat.name}
               </button>
@@ -191,14 +211,14 @@ function ThreadsHomePage() {
           </CardContent>
         </Card>
         <div className="space-y-4">
-          {isLoading && (
+          {isLoadingThreads && (
             <div className="flex items-center justify-center rounded-lg border border-border bg-card py-10 animate-fade-in">
               <p className="text-sm text-muted-foreground">
                 Loading Threads...
               </p>
             </div>
           )}
-          {!isLoading && threads.length === 0 && (
+          {!isLoadingThreads && threads.length === 0 && (
             <Card className="border-dashed border-border bg-card animate-fade-in">
               <CardContent className="py-10 text-center">
                 <p className="text-sm text-muted-foreground">
@@ -207,7 +227,7 @@ function ThreadsHomePage() {
               </CardContent>
             </Card>
           )}
-          {!isLoading &&
+          {!isLoadingThreads &&
             threads.map((thread) => (
               <Card
                 key={thread.id}

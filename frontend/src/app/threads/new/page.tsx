@@ -9,8 +9,8 @@ import { Category, ThreadDetail } from "@/types/threads";
 import { useAuth } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -29,8 +29,9 @@ function NewThreadsPage() {
   const apiClient = useMemo(() => createBrowserApiClient(getToken), [getToken]);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasSetDefaultCategory = useRef(false);
 
   // Debug: Log auth status
   useEffect(() => {
@@ -56,7 +57,7 @@ function NewThreadsPage() {
     let isMounted = true;
 
     async function load() {
-      setIsLoading(true);
+      setIsLoadingCategories(true);
 
       try {
         const extractCat = await apiGet<Category[]>(
@@ -68,17 +69,27 @@ function NewThreadsPage() {
 
         setCategories(extractCat);
 
-        if (extractCat.length > 0) {
-          form.setValue("categorySlug", extractCat[0]?.slug);
+        if (!hasSetDefaultCategory.current && extractCat.length > 0) {
+          form.setValue("categorySlug", extractCat[0].slug, {
+            shouldValidate: true,
+          });
+          hasSetDefaultCategory.current = true;
         }
       } catch (err) {
         console.log("Failed to load Categores", err);
+        toast.error("Failed to load categories", {
+          description: "Please refresh the page and try again.",
+        });
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) setIsLoadingCategories(false);
       }
     }
     load();
-  }, [apiClient, form]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [apiClient, form.setValue]);
 
   async function onThreadSubmit(values: NewThreadFormValues) {
     try {
@@ -142,7 +153,7 @@ function NewThreadsPage() {
                 id="title"
                 placeholder="Thread Title"
                 {...form.register("title")}
-                disabled={isLoading || isSubmitting}
+                disabled={isLoadingCategories || isSubmitting}
                 className="border-border mt-3 bg-background/70 text-sm"
               />
               {form.formState.errors.title && (
@@ -157,20 +168,41 @@ function NewThreadsPage() {
               >
                 Category
               </label>
-              <select
-                id="categorySlug"
-                {...form.register("categorySlug")}
-                disabled={isLoading || isSubmitting}
-                className="h-10 mt-3 w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground focus:ring-2 focus:ring-primary/30 focus:outline"
-              >{(categories || []).map((category) => (
-                  <option
-                    value={category.slug}
-                    id={category.slug}
-                    key={category.slug}
+              <Controller
+                name="categorySlug"
+                control={form.control}
+                render={({ field }) => (
+                  <select
+                    id="categorySlug"
+                    {...field}
+                    disabled={
+                      isLoadingCategories ||
+                      isSubmitting ||
+                      categories.length === 0
+                    }
+                    className="h-10 mt-3 w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground focus:ring-2 focus:ring-primary/30 focus:outline-none"
                   >
-                    {category.name}
-                  </option>
-                ))}</select>
+                    {categories.length === 0 ? (
+                      <option value="">
+                        {isLoadingCategories
+                          ? "Loading categories..."
+                          : "No categories available"}
+                      </option>
+                    ) : (
+                      categories.map((category) => (
+                        <option value={category.slug} key={category.slug}>
+                          {category.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                )}
+              />
+              {form.formState.errors.categorySlug && (
+                <p className="text-xs text-red-500">
+                  {form.formState.errors.categorySlug.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -180,7 +212,7 @@ function NewThreadsPage() {
               >
                 Description
               </label>
-              <Textarea id="body" rows={8} placeholder="Thread description..." disabled={isLoading || isSubmitting} className="border-border mt-3 bg-background/70 text-sm" {...form.register("body")}/>
+              <Textarea id="body" rows={8} placeholder="Thread description..." disabled={isLoadingCategories || isSubmitting} className="border-border mt-3 bg-background/70 text-sm" {...form.register("body")}/>
               {form.formState.errors.body && (
                 <p className="text-xs text-red-500">{form.formState.errors.body.message}</p>
               )}
