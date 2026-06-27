@@ -342,7 +342,9 @@ function DirectChatPanel(props: DirectChatPanelProps) {
       </CardHeader>
 
       <CardContent
-        ref={(el) => (containerRef.current = el)}
+        ref={(el) => {
+          containerRef.current = el;
+        }}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4"
         style={{ background: "transparent", display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}

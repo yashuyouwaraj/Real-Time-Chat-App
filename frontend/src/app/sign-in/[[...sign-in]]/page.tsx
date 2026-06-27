@@ -23,7 +23,7 @@ export default async function SignInPage() {
               routing="path"
               path="/sign-in"
               signUpUrl="/sign-up"
-              signInFallbackRedirectUrl="/"
+              fallbackRedirectUrl="/"
             />
           </div>
           <p className="text-center text-xs text-muted-foreground">

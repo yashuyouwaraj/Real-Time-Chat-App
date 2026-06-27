@@ -32,7 +32,9 @@ function ImageUploadButton({ onImageUpload }: ImageUploadBtnProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadedData = await apiClient.post<{ url: string; width: number; height: number }>(
+      const uploadedData = await apiClient.post<{
+        data: { url: string; width: number; height: number };
+      }>(
         "/api/upload/image-upload",
         formData,
         {
