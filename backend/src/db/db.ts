@@ -8,6 +8,7 @@ export const pool = new Pool({
   database: env.DB_NAME,
   user: env.DB_USER,
   password: env.DB_PASSWORD,
+  ssl: env.DB_HOST !== "localhost" ? { rejectUnauthorized: false } : undefined,
 });
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
